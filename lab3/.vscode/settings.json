@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "/mnt/c/Users/user/OneDrive/Bartons/Flights/VNAV2023/VNAV-labs-main/VNAV-labs-main/lab3/controller_pkg",
+    "files.associations": {
+        "cmath": "cpp",
+        "complex": "cpp"
+    }
+}
