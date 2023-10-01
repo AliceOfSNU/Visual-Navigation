@@ -3,6 +3,8 @@
 
 #include <geometry_msgs/PoseStamped.h>
 #include <tf/tf.h>
+#include <vector>
+#include <iostream>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -16,6 +18,9 @@
 
 #include <Eigen/Eigen>
 
+#define OUT
+#define INOUT
+using namespace std;
 /*
  * Structure containing the camera parameters.
  */
@@ -68,18 +73,8 @@ int extractPose(const opengv::essentials_t& Es,
                 const CameraParams camera_params,
                 cv::Mat& R, cv::Mat& t)
 {
-  // std::cout << std::endl << std::string(80,'-') << std::endl;
-
-  // OpenCV findEssentialMat
-  // cv::Mat E = cv::findEssentialMat(pts1, pts2, camera_params_.K);
-  // int inliers = cv::recoverPose(E, pts1, pts2, camera_params_.K, R, t);
-  // return inliers;
-  // std::cout << "From OpenCV (" << inliers << " inliers):" << std::endl;
-  // std::cout << E << std::endl;
-
   int max_inliers = 0;
 
-  // std::cout << "From OpenGV (" << Es.size() << " solns): " << std::endl;
   for (int i=0; i<Es.size(); i++) {
     // for convenience
     auto E = Es[i];
@@ -91,7 +86,53 @@ int extractPose(const opengv::essentials_t& Es,
     cv::Mat tmpR, tmpT;
     int inliers = cv::recoverPose(Emat, pts1, pts2, camera_params.K, tmpR, tmpT);
 
-    // std::cout << "Soln (" << i << "): " << inliers << " inliers:" << std::endl;
+    if (inliers > max_inliers) {
+      max_inliers = inliers;
+      cv::swap(R, tmpR);
+      cv::swap(t, tmpT);
+    }
+  }
+
+  return max_inliers;
+}
+
+// ----------------------------------------------------------------------------
+/**
+ * @brief      Extract pose of camera 1 w.r.t camera 2
+ *
+ * @param[in]  Es            Vector of essential matrix solutions from OpenGV
+ * @param[in]  pts1          Feature correspondences from camera 1
+ * @param[in]  pts2          Feature correspondences from camera 2
+ * @param[in]  camera_params Camera parameters
+ * @param      R             Best rotation matrix
+ * @param      t             Best translation vector
+ * @param[in]  indices       Vector of integer indices to consider
+ * @return     Number of inliers achieved from best solution
+ */
+int extractPose(const opengv::essentials_t& Es,
+                const std::vector<cv::Point2f>& pts1,
+                const std::vector<cv::Point2f>& pts2,
+                const CameraParams camera_params,
+                cv::Mat& R, cv::Mat& t, const vector<int> indices)
+{
+  int max_inliers = 0;
+
+  //std::cout << "From OpenGV (" << Es.size() << " solns): " << std::endl;
+  for (int i=0; i<Es.size(); i++) {
+    // for convenience
+    auto E = Es[i];
+
+    // convert eigen to cv mat
+    cv::Mat Emat;
+    cv::eigen2cv(E, Emat);
+
+    cv::Mat tmpR, tmpT;
+
+    cv::Mat indexMat;
+    //vector<float> indexMat(pts1.size(),0);
+    int inliers = cv::recoverPose(Emat, pts1, pts2, camera_params.K, tmpR, tmpT);
+
+    //std::cout << "Soln (" << i << "): " << inliers << " inliers:" << std::endl;
     // std::cout << "[" << E << "]" << std::endl;
 
     // choose the solution with the most inliers

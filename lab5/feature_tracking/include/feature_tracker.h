@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defines.h"
 #include "feature_tracker.h"
 #include <vector>
 
@@ -12,7 +13,7 @@ public:
 
   virtual ~FeatureTracker() = default;
 
-  /** Main function (TODO)
+  /** Main function
    * This function receives a pair of images and tracks features from one image
    * to the other.
     @param[in] img_1, img_2 Images where to track features.

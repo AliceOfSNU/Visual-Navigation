@@ -92,10 +92,10 @@ Visualization Manager:
       Color: 255; 255; 0
       Enabled: true
       Head Length: 1
-      Head Radius: 1
+      Head Radius: 0.5
       Name: Corrected Camera Pose
-      Shaft Length: 5
-      Shaft Radius: 0.5
+      Shaft Length: 3
+      Shaft Radius: 0.25
       Shape: Arrow
       Topic: /camera_pose
       Unreliable: false
@@ -107,10 +107,10 @@ Visualization Manager:
       Color: 78; 154; 6
       Enabled: true
       Head Length: 1
-      Head Radius: 1
+      Head Radius: 0.5
       Name: GT Camera Pose
-      Shaft Length: 5
-      Shaft Radius: 0.5
+      Shaft Length: 3
+      Shaft Radius: 0.25
       Shape: Arrow
       Topic: /gt_camera_pose
       Unreliable: false

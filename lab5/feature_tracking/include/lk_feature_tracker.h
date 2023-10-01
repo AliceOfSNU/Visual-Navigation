@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <algorithm>
 #include "feature_tracker.h"
 
 #include <opencv2/core.hpp>
@@ -13,7 +14,8 @@ class LKFeatureTracker {
 
   ~LKFeatureTracker();
 
-  /** TODO: this function tracks features for a given frame
+
+  /** this function tracks features for a given frame
    * @param[in] the current image frame
    * Should update prev_frame_ and prev_corners_ as needed
    */
@@ -28,6 +30,7 @@ class LKFeatureTracker {
                              const std::vector<cv::Point2f>& pts2,
                              std::vector<uchar>* inlier_mask) const;
 
+  void printStats() const;
  private:
 
   /** TODO Display image with tracked features from prev to curr on the image
@@ -36,13 +39,19 @@ class LKFeatureTracker {
    * @param[in] prev The previous set of keypoints
    * @param[in] curr The set of keypoints for the current frame
    */
-  void show(const cv::Mat& frame, std::vector<cv::Point2f>& prev,
-                 std::vector<cv::Point2f>& curr);
+  void show(const cv::Mat& frame, vector<cv::Point2f>& prev,
+                 std::vector<cv::Point2f>& curr, const vector<uchar>& ismatched);
+
 
   static constexpr const char* window_name_ = "LK";
   cv::Mat prev_frame_;
-  std::vector<cv::Point2f> prev_corners_;
+  cv::Mat prev_frame_gry_;
+  vector<cv::Mat> prev_pyr_;
+  vector<cv::Point2f> prev_corners_;
 
+  // Visuals
+  cv::Mat tracks_overlay_;
+  
   // Statistics
   float avg_num_keypoints_img1_ = 0;
   float avg_num_keypoints_img2_ = 0;

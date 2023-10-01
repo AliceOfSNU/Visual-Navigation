@@ -23,9 +23,12 @@
 #include "fast_feature_tracker.h"
 #include "lk_feature_tracker.h"
 
+
+//timing
+using namespace std::chrono;
+//end timing
 using namespace std;
 using namespace cv::xfeatures2d;
-
 /** imageCallback This function is called when a new image is published.
  * For the first part of the assignment (working with a pair of images), you
  * can ignore this function.
@@ -42,7 +45,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg,
     cv::imshow("view", image);
     static cv::Mat prev_image = image;
     feature_tracker->trackFeatures(image, prev_image);
-    cv::waitKey(1);
+    cv::waitKey(10);
     prev_image = image;
   } catch (cv_bridge::Exception &e) {
     ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
@@ -56,13 +59,16 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg,
  */
 void lkImageCallback(const sensor_msgs::ImageConstPtr &msg,
                      std::shared_ptr<LKFeatureTracker> lk_tracker) {
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    try {
+    // Convert ROS msg type to OpenCV image type.
+    cv::Mat image = cv_bridge::toCvShare(msg, "bgr8")->image;
+    cv::imshow("view", image);
+    lk_tracker->trackFeatures(image);
+    cv::waitKey(10);
+
+  } catch (cv_bridge::Exception &e) {
+    ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+  }
 }
 
 /** You do not need to modify this function
@@ -115,25 +121,15 @@ int main(int argc,
   std::shared_ptr<FeatureTracker> feature_tracker;
   std::shared_ptr<LKFeatureTracker> lk_tracker;
   if (descriptor == "SIFT") {
-    ///////////////////// SIFT ///////////////////////////////////////////////////
     feature_tracker.reset(new SiftFeatureTracker());
-    // (TODO) Implement the functions in SiftFeatureTracker
-  } else if (descriptor == "SURF") { // Try for different feature trackers!
-    // /////////////////// SURF ///////////////////////////////////////////////////
+  } else if (descriptor == "SURF") { 
     feature_tracker.reset(new SurfFeatureTracker());
-    // (TODO) Implement the functions in SurfFeatureTracker
   } else if (descriptor == "ORB") {
-    ///////////////////// ORB ////////////////////////////////////////////////////
     feature_tracker.reset(new OrbFeatureTracker());
-    // (TODO) Implement the functions in OrbFeatureTracker
   } else if (descriptor == "FAST") {
-    ///////////////////// FAST ///////////////////////////////////////////////////
     feature_tracker.reset(new FastFeatureTracker());
-    // (TODO) Implement the functions in FastFeatureTracker
   } else if (descriptor == "LK") {
-    ///////////////////// Lucas-Kanade ///////////////////////////////////////////////////
     lk_tracker.reset(new LKFeatureTracker());
-    // (TODO) Implement the functions in LKFeatureTracker
   } else {
     ROS_ERROR("Unknown descriptor %s", descriptor.c_str());
     return EXIT_FAILURE;
@@ -153,14 +149,6 @@ int main(int argc,
     }
     feature_tracker->trackFeatures(img_1, img_2);
   } else if (mode == 1) {
-    ///////////////////// TODO ///////////////////////////////////////////////////
-    ///
-    /// Feel free to modify as needed for LK method!
-    ///
-    /// Try to use a video sequence and track features from frame to frame.
-    /// Compute at the same time an average of the statistics mentioned in the
-    /// handout.
-
     cv::namedWindow("view", cv::WINDOW_NORMAL);
     image_transport::ImageTransport it(local_nh);
     auto callback = [feature_tracker, lk_tracker, descriptor](const sensor_msgs::ImageConstPtr &msg) {
@@ -179,6 +167,6 @@ int main(int argc,
   }
 
   feature_tracker->printStats();
-
+  lk_tracker->printStats();
   return EXIT_SUCCESS;
 }

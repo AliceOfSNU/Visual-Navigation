@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <numeric>
+#include <cassert>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -41,123 +42,56 @@ void FeatureTracker::trackFeatures(const cv::Mat &img_1,
                                    const cv::Mat &img_2,
                                    std::pair<std::vector<cv::KeyPoint>, std::vector<cv::KeyPoint>> *matched_kp_1_kp_2) {
 
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  //  DELIVERABLE 3 | Feature Descriptors (SIFT)
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  //
-  // For your convenience,  
-  // here are two vectors of keypoints representing keypoints for image 1 and 2.
-  std::vector<KeyPoint> keypoints_1, keypoints_2; 
-  //
-  //
-  // For this part, you will need to complete the following tasks.
-  //
-  // Note: the actual logic for computing features  will happen inside each of the 
-  // derived class. Here we are just calling the derived classes functions 
-  // (because they share the same interface), and operate on the results on a
-  // higher level.
-  //
-  //   1. Detect the keypoints for each image independently. Implement and use
-  //   the skeleton function 'detectKeypoints' in the derived class, (i.e. in
-  //   SiftFeatureTracker)
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  //   2. Display detected keypoints on both images, and save them for the
-  //   deliverable. Make use of the OpenCV functions 'drawKeypoints', 'imwrite'. 
-  //   Tip: use 'waitKey(0);' to avoid opencv closing the visualization window. 
-  //   Mind that using waitKey(0) will block ROS from dying (bottom of this 
-  //   file we offer an alternative).
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  //   3. Compute descriptors by filling in the skeleton function
-  //   `describeKeypoints` in the relevant derived classes (i.e.
-  //   SiftFeatureTracker)
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  //                             end deliverable 3
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+  vector<KeyPoint> keypoints_1, keypoints_2; 
+  detectKeypoints(img_1, &keypoints_1);
+  detectKeypoints(img_2, &keypoints_2);
 
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  //  DELIVERABLE 4 | Descriptor-based Feature Matching
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  // Matches and good matches to be populated
+  cv::Mat desc_1, desc_2; //size [kpt_count * 128]
+  describeKeypoints(img_1, &keypoints_1, &desc_1);
+  describeKeypoints(img_2, &keypoints_2, &desc_2);
+
   std::vector<std::vector<DMatch>> matches;
   std::vector<DMatch> good_matches;
-  //
-  // For this part, you will need to:
-  //   1. Match descriptor vectors using the FLANN matcher. FLANN = Fast
-  //   Approximate Nearest Neighbor Search Library. Use and fill in the skeleton
-  //   function 'matchDescriptors' in the derived class (e.g.
-  //   SiftFeatureTracker), and call them here.
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  //   2. Plot the matches using the opencv function 'drawMatches'. Save the
-  //   image for deliverable.
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  //   3. Use the function 'inlierMaskComputation' to get the inliers amongst
-  //   the matches you computed. (You are not supposed to modify this function,
-  //   but you will learn what it is doing in the next lecture).
-  //   Note: you may need to create additional variables based on match, 
-  //   good_matches and keypoints_1/2 as inputs to the
-  //   'inlierMaskComputation' function.
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  //                             end deliverable 4
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  //  DELIVERABLE 5 | Keypoint Matching Quality
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  //
-  unsigned int num_inliers; // TODO compute number of inliers
-  // 
-  // For this part, you will need to:
-  //   1. Draw the inlier (green) and outlier (red) matches in a similar way
-  //   than in the handout. Make use of the function 'drawMatches'. Tip: you can
-  //   first draw the outliers and then re-use the same image to draw the
-  //   inliers. See the handout for more details
-  //
-  // ~~~~ begin solution
-  //
-  //     **** FILL IN HERE ***
-  //
-  // ~~~~ end solution
-  //
-  //   2. Calculate the statistics to fill the table in the handout.
-  //   Feel free to edit the code below to include more interesting stats.
+  //assert(desc_1.size()==desc_2.size() && desc_1.size[0] > 0);
+  matchDescriptors(desc_1, desc_2, &matches, &good_matches);
+  cv::Mat match_img;
+
+#if 0 //DRAW
+  cv::drawMatches(img_1, keypoints_1, img_2, keypoints_2, good_matches, match_img);
+  cv::imshow("matches", match_img);
+  while (ros::ok() && waitKey(10) == -1) {} //draw
+#endif
+
+  vector<uchar> mask;
+  vector<KeyPoint> mkpts_1(good_matches.size()), mkpts_2(good_matches.size());
+  for(int i = 0; i < good_matches.size(); ++i){
+    mkpts_1[i] = keypoints_1[good_matches[i].queryIdx];
+    mkpts_2[i] = keypoints_2[good_matches[i].trainIdx];
+  }
+  matched_kp_1_kp_2->first = mkpts_1, matched_kp_1_kp_2->second = mkpts_2;  
+  assert(matched_kp_1_kp_2 != nullptr);
+  //inlierMaskComputation(mkpts_1, mkpts_2, OUT &mask);
+
+  
+#if 0 //draw
+  vector<char> cmask{mask.begin(), mask.end()}; 
+  cv::drawMatches(img_1, keypoints_1, img_2, keypoints_2, good_matches, match_img, 
+    cv::Scalar(0, 255, 0), cv::Scalar::all(-1), cmask, 
+    cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
+  );
+  std::transform(cmask.begin(), cmask.end(), cmask.begin(), [](const char& x) {return !x;});
+  cv::drawMatches(img_1, keypoints_1, img_2, keypoints_2, good_matches, match_img, 
+    cv::Scalar(0, 0, 255), cv::Scalar::all(-1), cmask, 
+    cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
+  );
+  cv::imshow("matches", match_img);
+  while (ros::ok() && waitKey(10) == -1) {} 
+#endif
+
+  unsigned int num_inliers = 0;
+  for(uchar x: mask) num_inliers += x;
 
   float const new_num_samples = static_cast<float>(num_samples_) + 1.0f;
   float const old_num_samples = static_cast<float>(num_samples_);
@@ -169,10 +103,7 @@ void FeatureTracker::trackFeatures(const cv::Mat &img_1,
   avg_inlier_ratio_ =
       (avg_inlier_ratio_ * old_num_samples + (static_cast<float>(num_inliers) / static_cast<float>(good_matches.size()))) / new_num_samples;
   ++num_samples_;
-
-  // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-  //                             end deliverable 5
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
 }
 
 /** Compute Inlier Mask out of the given matched keypoints.
@@ -208,10 +139,6 @@ void FeatureTracker::inlierMaskComputation(const std::vector<KeyPoint> &keypoint
   }
 }
 
-/** Example of function to draw matches. Feel free to re-use this example or
- *  create your own. You will need to modify it in order to plot the different
- *  figures. You can add more functions to this class if needed.
- */
 void FeatureTracker::drawMatches(const cv::Mat &img_1,
                                  const cv::Mat &img_2,
                                  const std::vector<KeyPoint> &keypoints_1,

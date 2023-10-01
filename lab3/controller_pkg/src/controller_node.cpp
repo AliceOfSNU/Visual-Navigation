@@ -17,7 +17,7 @@
 #define INOUT
 #define FALLTRHOUGH
 
-inline bool ALMOST_EQUAL_D(double X, double Y) const{
+inline bool ALMOST_EQUAL_D(double X, double Y) {
   return abs(X-Y) < EPS;
 }
 
@@ -41,16 +41,16 @@ inline bool ALMOST_EQUAL_D(double X, double Y) const{
 
 
 #include <eigen3/Eigen/Dense>
+#include <tf2_eigen/tf2_eigen.h>
+
 using Vector2d = Eigen::Vector2d;
 using Vector3d = Eigen::Vector3d;
 using Vector4d = Eigen::Vector4d;
-using Cross = Eigen::Cross;
 using MatrixXd = Eigen::MatrixXd;
 using Matrix4d = Eigen::Matrix4d;
 using Matrix3d = Eigen::Matrix3d;
 using Matrix2d = Eigen::Matrix2d;
 
-#include <tf2_eigen/tf2_eigen.h>
 
 class controllerNode{
   ros::NodeHandle nh;
@@ -169,20 +169,20 @@ public:
   void onDesiredState(const trajectory_msgs::MultiDOFJointTrajectoryPoint& des_state){
 
       //  xd, vd, ad: You can ignore the angular acceleration.
-      xd << msg.transforms[0].translation.x, msg.transforms[0].translation.y, msg.transforms[0].translation.z;
-      vd << msg.velocities[0].linear.x, msg.velocities[0].linear.y, msg.velocities[0].linear.z;
-      ad << msg.accelerations[0].linear.x, msg.accelerations[0].linear.y, msg.accelerations[0].linear.z;
+      xd << des_state.transforms[0].translation.x, des_state.transforms[0].translation.y, des_state.transforms[0].translation.z;
+      vd << des_state.velocities[0].linear.x, des_state.velocities[0].linear.y, des_state.velocities[0].linear.z;
+      ad << des_state.accelerations[0].linear.x, des_state.accelerations[0].linear.y, des_state.accelerations[0].linear.z;
 
       //  Hints:
       //    - use the methods tf2::getYaw(...)
       //    - maybe you want to use also tf2::fromMsg(...)
 
-      Eigen::Quaterniond q(msg.transforms[0].rotation.x,
-        msg.transforms[0].rotation.y,
-        msg.transforms[0].rotation.z,
-        msg.transforms[0].rotation.w);
+      Eigen::Quaterniond q(des_state.transforms[0].rotation.x,
+        des_state.transforms[0].rotation.y,
+        des_state.transforms[0].rotation.z,
+        des_state.transforms[0].rotation.w);
       Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
-      yawd = euler.z;
+      yawd = euler.z();
   }
 
   void onCurrentState(const nav_msgs::Odometry& cur_state){
@@ -192,9 +192,12 @@ public:
 
       x << cur_state.pose.pose.position.x,  cur_state.pose.pose.position.y,  cur_state.pose.pose.position.z;
       v << cur_state.twist.twist.linear.x, cur_state.twist.twist.linear.y, cur_state.twist.twist.linear.z;
-      Eigen::Quaternionf q; q << cur_state.pose.pose.orientation.w << cur_state.pose.pose.orientation.x << cur_state.pose.pose.orientation.y << cur_state.pose.pose.orientation.z;
+      Eigen::Quaterniond q(cur_state.pose.pose.orientation.w,
+        cur_state.pose.pose.orientation.x,
+        cur_state.pose.pose.orientation.y,
+        cur_state.pose.pose.orientation.z);
       R = q.toRotationMatrix(); //base frame wrt world frame
-      omega << cur_state.twist.twist.angular.x << cur_state.twist.twist.angular.y << cur_state.twist.twist.angular.z;
+      omega << cur_state.twist.twist.angular.x , cur_state.twist.twist.angular.y, cur_state.twist.twist.angular.z;
       omega = R.inverse()*omega; //world to base.
      
   }
@@ -212,8 +215,7 @@ public:
     b1d_tilde << cos(yawd), sin(yawd), 0;
     b2d = b3d.cross(b1d_tilde).normalized();
     b1d = b2d.cross(b3d).normalized();
-    Matrix3d Rd << b1d, b2d, b3d;
-    assert(ALMOST_EQUAL_D(Rd.determinant(), 1.0))
+    Matrix3d Rd; Rd << b1d, b2d, b3d;
 
     // orientation error (er) and the rotation-rate error (eomega)
     er = 0.5*Vee(Rd.transpose()*R-R.transpose()*Rd);
