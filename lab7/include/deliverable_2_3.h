@@ -30,14 +30,14 @@ class MoCapPosition3Factor : public NoiseModelFactor1<Pose3> {
       const gtsam::Pose3& p,
       boost::optional<gtsam::Matrix&> H = boost::none) const {
 
-    // 3a. Complete definition of factor
-    // TODO: 
-    // Return error vector and jacobian if requested (aka H !=
-    // boost::none).
-    //
-    // Insert code below:
+      if (H) {
+        Matrix36 H_mat = Matrix36::Zero();
+        H_mat.block<3, 3>(0, 3) = p.rotation().matrix();
+        //H_mat.block<3, 3>(0, 3) = Matrix33::Identity();
+        *H = H_mat;
+      }
 
-    // End 3a. 
+      return (Vector(3) << p.x() - m_.x(), p.y() - m_.y(), p.z() - m_.z()).finished();
   }
 
   ~MoCapPosition3Factor() {}

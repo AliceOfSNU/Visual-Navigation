@@ -74,8 +74,13 @@ int main(int argc, char* argv[]) {
   // Create an empty factor graph
   NonlinearFactorGraph graph;
 
-  // TODO: Add a prior on pose x0. This indirectly specifies where the origin is.
-  // Insert code below:
+  // Add a prior on pose x0. This indirectly specifies where the origin is.
+  // the dev values are given.
+  constexpr double rot_std_dev = 0.1, pos_std_dev = 0.3;
+  const gtsam::noiseModel::Diagonal::shared_ptr prior_noise = gtsam::noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(rot_std_dev), Vector3::Constant(pos_std_dev)).finished());
+
+  gtsam::Key pose0 = gtsam::Symbol('x', 0);
+  graph.add(PriorFactor<Pose3>(pose0, camera_poses[0], prior_noise));
 
   // Simulated measurements from each camera pose.
   // A vector of pairs, where for each pair in the vector, the first component
@@ -85,18 +90,22 @@ int main(int argc, char* argv[]) {
   std::vector<std::pair<size_t, Keypoint>> measurements;
   createMeasurements(K, landmarks, camera_poses, &measurements);
 
-  // TODO: Add GenericProjectionFactor factors to the graph according to measurements
+  // Add GenericProjectionFactor factors to the graph according to measurements
   // Use the character 'l' to symbolize landmarks, and 'x' to symbolize poses.
-  // Insert code below:
+  // Symbol automatically creates non-colliding keys.
+  for(size_t t = 0; t < measurements.size(); ++t){
+      graph.add(GenericProjectionFactor<Pose3, Point3, Cal3_S2>(measurements[t].second.kpt_coords_, measurementNoise, 
+      gtsam::Symbol('x', measurements[t].first), gtsam::Symbol('l', measurements[t].second.lmk_idx_), K));
+  }
+  
 
-
-  // TODO: Because the structure-from-motion problem has a scale ambiguity,
+  // Because the structure-from-motion problem has a scale ambiguity,
   // the problem is still under-constrained Here we add a prior on the
   // position of the first landmark. This fixes the scale by indicating the
   // distance between the first camera and the first landmark. All other
   // landmark positions are interpreted using this scale.
-  // Insert code below:
-
+  gtsam::noiseModel::Diagonal::shared_ptr position_noise = gtsam::noiseModel::Diagonal::Sigmas(Vector3(0.5, 0.5, 0.5));
+  graph.add(PriorFactor<Point3>(gtsam::Symbol('l', 0), landmarks[0], position_noise));
 
   // Print the graph to debug.
   // graph.print("Graph");

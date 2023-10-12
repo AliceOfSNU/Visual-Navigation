@@ -216,6 +216,7 @@ void generateMoCapMeasurements(
                       gt_trajectory.at(i).y() + d_position(gen_),
                       gt_trajectory.at(i).z() + d_position(gen_))));
   }
+  
 }
 
 // Convenience function to convert a gtsam Pose to a ROS Pose for visualization.
@@ -272,7 +273,7 @@ int main(int argc, char** argv) {
 
   static constexpr bool use_mocap = true;
   // Simulate motion capture measurements of the actual position of the drone.
-  static constexpr int num_mocap_measurements = 10;
+  static constexpr int num_mocap_measurements = 20;
   static constexpr double mocap_std_dev = 1e-3;
   std::vector<std::pair<int, Point3>> mocap_measurements;
   if (use_mocap) {
@@ -353,49 +354,55 @@ int main(int argc, char** argv) {
       noiseModel::Diagonal::Sigmas(sigmas);
 
   // 2a.
-  // TODO: Add factors to the graph.
   // Create BetweenFactor(s) between consecutive poses using the odometry
   // measurements.
-  //
-  // Insert code below:
-
-  // End 2a. 
- 
+  for(size_t t = 0; t < measurements.size(); ++t){
+    graph.add(BetweenFactor<Pose3>(t+1, t+2, measurements[t], odometryNoise));
+  }
+  
+  cout << "measurement size: " << measurements.size() << endl;
+  cout << "mocap size:" << mocap_measurements.size() << endl;
+  Matrix36 H_mat = Matrix36::Zero();
+  H_mat.block<3, 3>(0, 3) = Matrix33::Identity();
+  cout << H_mat << endl;
+  
   if (!use_mocap) {
+    cout << "not using mocap measurements" << endl;
+
     Matrix init_pose = Matrix::Identity(4, 4);
     init_pose(0, 3) = 2;
     gtsam::Pose3 initial_pose(init_pose);
     const noiseModel::Diagonal::shared_ptr initialNoise =
         noiseModel::Diagonal::Sigmas(sigmas);
     // 2b
-    // TODO: Add a prior factor on the node with key 1 
+    // Add a prior factor on the node with key 1 
     // to constrain it to initial_pose
-    //
-    // Insert code below:
-
-    // End 2b.
+    graph.add(PriorFactor<Pose3>(1, initial_pose, initialNoise));
   }
 
   if (use_mocap) {
+    cout << "using mocap measurements" << endl;
     // 3b. Add motion capture measurements (mocap_measurements)
-    // TODO: create the 3D MoCap measurement noise model (a diagonal noise
+    // create the 3D MoCap measurement noise model (a diagonal noise
     // model should be sufficient). Think of how many dimensions it should have.
     // You are given mocap_std_dev (defined above)
-    //
-    //
+    const noiseModel::Diagonal::shared_ptr mocap_noise_model = noiseModel::Diagonal::Sigmas(Vector3(mocap_std_dev, mocap_std_dev, mocap_std_dev));
 
-    //  TODO: add the MoCap factors
+
+    // add the MoCap factors
     // Note that there is no prior factor needed at first pose, since MoCap
     // provides the global positions (and rotations given more than 1 MoCap
     // measurement).
-    //
-    // Insert code below:
-
-    // End 3b. 
+    size_t tt = 0;
+    for(auto& p: mocap_measurements){
+      cout << "Added mocap factor: " << p.first << ": "  << p.second << endl;
+      cout << "gt" << gt_trajectory.at(p.first -1) << endl;
+      graph.add(boost::make_shared<MoCapPosition3Factor>(p.first, p.second, mocap_noise_model));
+    }
   }
 
   // You can print factor graph for debugging if you want.
-//   graph.print("\nFactor Graph:\n");
+  // graph.print("\nFactor Graph:\n");
 
   // Set the initial variable values for the optimization.
   // They should not be the ground truth ones, and they do not need to be
@@ -429,7 +436,7 @@ int main(int argc, char** argv) {
   GaussNewtonParams parameters;
 
   // Modify the max number of iterations to see the overall improvement.
-  parameters.setMaxIterations(1);
+  parameters.setMaxIterations(6);
   parameters.setAbsoluteErrorTol(1e-06);
 
   // Print per iteration.
