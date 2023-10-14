@@ -11,7 +11,7 @@ class PlotsPublisherNode{
  ros::Timer heartbeat;
  ros::NodeHandle nh;
  ros::Publisher markers_pub;
- tf::TransformListener tf_listener;
+ tf::TransformListener tf_listener; 
  int num_trails;
 
  class TrajTrail{
