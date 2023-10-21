@@ -1,8 +1,21 @@
+
+# What is this lab about?
+
+### Teddy Bear Localization and sparse reconstruction
+In this lab, I used a YOLO-v3 based detection library [darknet](https://github.com/pjreddie/darknet) to
+localize a teddy bear in the tum [rgbd teddy dataset](https://cvg.cit.tum.de/data/datasets/rgbd-dataset/download#freiburg3_teddy), given the camera poses and rgb images.
+
+![Alt text](<Peek 2023-10-21 21-22.gif>)
+
+I have used a separate node to perform pose graph optimization in real time. (pgo) This uses the gtsam library from lab7. 
+
+** I will soon be extending this to triangulate ORB features to create a sparse point reconstruction of the teddy bear.**
+
+
+
 # Installation
 
-1. Follow the instructions in the handout to install all the depenencies
-
-2. Build lab_8:
+1. Build lab_8:
 ```
 catkin build lab_8
 ```
@@ -14,13 +27,15 @@ source {VNAV_HOME}/vnav_ws/devel/setup.bash
 
 # Usage
 
-1. In this lab, we will be using different executables, one for each deliverable, and we are not using more than one node at a time, therefore we will just use rosrun.
-To run rosrun, you need first to launch roscore in a terminal.
+1. For Teddy Bear localization, I have created a launch file.
 ```
-roscore
+ roslaunch lab_8 localization.launch
 ```
-then, in another terminal run:
+This will launch the main deliverable_2, the darknet server and the pgo backend.
+
+2. You'll need to run the rviz separately. I have setup a .rviz file.
+From another terminal, run
+
 ```
-rosrun lab_8 deliverable_2
+rviz -d rviz/deliverable_2.rviz
 ```
-> **Note** Not so fast, first you have to implement the functions inside the source code, follow the handout at this point.

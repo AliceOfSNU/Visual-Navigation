@@ -1,3 +1,13 @@
+# What is this lab about?
+
+### Deliverable 1. Odometry + GPS
+![Alt text](dev1.png)
+
+### Deliverable 2, 3. optimizing a rough trajectory from odometry with indoor gps-like sensors (motion capture)
+![Alt text](dev23.png)
+
+### Deliverable 4. A landmark SLAM using 4 landmarks and odometry data.
+
 # Installation
 
 0. Install packages that you might need:
@@ -33,6 +43,12 @@ roscore
 ```
 then, in another terminal run:
 ```
-rosrun lab_7 deliverable_1
+rosrun lab_7 deliverable_n
 ```
-> **Note** Not so fast, first you have to implement the functions inside the source code, follow the handout at this point.
+where 
+- n = 1: a simple odometry model
+
+- n=2, 3: a odometry + motion capture(indoor gps sensor)
+
+- n=4: landmark SLAM using projection factor
+
