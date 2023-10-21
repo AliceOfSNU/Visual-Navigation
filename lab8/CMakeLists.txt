@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   gflags_catkin
   glog_catkin
   gtsam_catkin
+  pgo
 )
 
 # Boost - same requirement as gtsam
@@ -30,13 +31,22 @@ message(STATUS "Eigen Version: ${EIGEN3_VERSION_STRING} ${EIGEN3_VERSION}")
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES
- CATKIN_DEPENDS roscpp std_msgs opencv3_catkin gflags_catkin glog_catkin gtsam_catkin actionlib
+ CATKIN_DEPENDS roscpp std_msgs opencv3_catkin gflags_catkin glog_catkin gtsam_catkin actionlib pgo 
 )
+
+
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 
+add_library(
+  detectors
+  src/yolo_detector.cpp
+)
+
+target_link_libraries(detectors ${catkin_LIBRARIES})
+
 add_executable(deliverable_2 src/deliverable_2.cpp)
-target_link_libraries(deliverable_2 ${Boost_LIBRARIES} -ltbbmalloc ${catkin_LIBRARIES})
+target_link_libraries(deliverable_2 detectors ${Boost_LIBRARIES} -ltbbmalloc ${catkin_LIBRARIES} -lffi -ltiff)
 
 add_executable(deliverable_4 src/deliverable_4.cpp)
 target_link_libraries(deliverable_4 ${catkin_LIBRARIES})

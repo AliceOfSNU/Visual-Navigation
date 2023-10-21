@@ -37,7 +37,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES
   CATKIN_DEPENDS roscpp std_msgs opencv3_catkin gtsam_catkin message_runtime
-)
+) 
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 

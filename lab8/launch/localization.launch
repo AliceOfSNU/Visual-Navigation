@@ -1,0 +1,26 @@
+<launch>
+  <!-- (TODO) Add the path to your dataset here: 2018-10-01-19-10-08_30fps_LowRes-->
+  <arg name="dataset" default="rgbd_dataset_freiburg3_teddy.bag" />
+  <arg name="path_to_dataset" default="$(eval env('HOME') + '/data/vnav/' + arg('dataset'))"/>
+  
+  <!-- Use YOLOv3 -->
+  <arg name="yolo_weights_path"          default="$(find darknet_ros)/yolo_network_config/weights"/>
+  <arg name="yolo_config_path"           default="$(find darknet_ros)/yolo_network_config/cfg"/>
+
+  <!-- Load parameters -->
+  <rosparam command="load" ns="darknet_ros" file="$(find darknet_ros)/config/ros.yaml"/>
+  <rosparam command="load" ns="darknet_ros" file="$(find darknet_ros)/config/yolov3.yaml"/>
+
+  <!-- Start darknet and ros wrapper -->
+  <node pkg="darknet_ros" type="darknet_ros" name="darknet_ros" output="screen">
+    <param name="weights_path"          value="$(arg yolo_weights_path)" />
+    <param name="config_path"           value="$(arg yolo_config_path)" />
+  </node>
+
+  <node name="lab_8" type="deliverable_2" pkg="lab_8"  output="screen"/>
+  <node name="pgo_server" type="pgo_node" pkg="pgo" output="screen"/>
+
+  <node name="rosbag" pkg="rosbag" type="play" output="screen" launch-prefix="xterm -geometry 100x20 -e " args="--clock $(arg path_to_dataset)"/>
+
+
+</launch>

@@ -1,3 +1,4 @@
+#pragma once 
 
 #define OUT
 #include <vector>
@@ -20,6 +21,7 @@
 #include <tf/transform_datatypes.h>
 #include <tf_conversions/tf_eigen.h>
 #include <opencv2/core.hpp>
+#include "utils.hpp"
 
 using namespace std;
 using namespace gtsam;
@@ -33,15 +35,23 @@ public:
 
     //all data interfaces are via geometry_msgs. gtsam dependencies do not leak  out.
     void initialize_priors(geometry_msgs::PoseConstPtr& cam_init_pose, geometry_msgs::PointConstPtr& obj_init_pos);
-    void add_pose_and_projection_factor(geometry_msgs::PoseConstPtr& cam_pose, cv::Point2f& obj_centroid);
-    void set_K(const Matrix44& K);
+    //void add_pose_and_projection_factor(geometry_msgs::PoseConstPtr& cam_pose, cv::Point2f& obj_centroid);
+    void add_pose_prior(size_t cam_id,const Pose3& pose);
+    void add_projection_factor(size_t cam_id, size_t landmark_id, const Point2& landmark_pixel);
+    void set_K(double fx, double fy, double s, double u0, double v0);
+    Cal3_S2 get_K(){return *K;};
+    void add_point_prior(size_t landmark_id, const Point3& point);
     void print_graph(){
         graph.print();
     }
+    bool has_key(Symbol sym){
+        return graph.keys().exists(sym.key());
+    }
     int optimize_graph();
-    int get_poses_optimal(OUT vector<geometry_msgs::Pose>& poses);
-    int get_centroid_optimal(OUT geometry_msgs::Point centroid);
-
+    Values optimize();
+    double getError(Values const& val){
+      return graph.error(val);
+    }
 
 private:
     Cal3_S2::shared_ptr K;
@@ -63,31 +73,6 @@ private:
     NonlinearFactorGraph graph;
 
     size_t num_factors = 0;
-    size_t num_cam_poses, num_obj_pos;
-
-    /**
-     * converts a geometry_msg pose to gtsam::Pose3
-    */
-    Pose3 msgToPose3(geometry_msgs::Pose::ConstPtr& msg){
-        geometry_msgs::Quaternion q = msg->orientation;
-        geometry_msgs::Point p = msg->position;
-
-        //copy ellision or move.
-        return Pose3(Rot3(Quaternion(q.w, q.x, q.y, q.z)), Point3(p.x, p.y, p.z));
-    }
-
-    /**
-     * converts a geometry_msg point to gtsam::Point3
-    */
-   Point3 msgToPoint3(geometry_msgs::Point::ConstPtr& msg){
-        return Point3(msg->x, msg->y, msg->z);
-   }
-
-   /**
-    * converts a cv2 Point2f to gtsam::Point2
-   */
-  Point2 cvToPoint2(cv::Point2f const& cvpt2){
-    return Point2(cvpt2.x, cvpt2.y);
-  }
+    Values initialEstimate;
 
 };
