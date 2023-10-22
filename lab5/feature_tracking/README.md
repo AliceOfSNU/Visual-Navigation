@@ -1,3 +1,20 @@
+# What's this lab about?
+
+### Feature Tracking
+
+In this lab, I used opencv SIFT, SURF, and ORB features detectors and descriptors to track keypoints and compared their performances. For matching the keypoints, I have used a [FLANN-based matcher](https://docs.opencv.org/3.4/d5/d6f/tutorial_feature_flann_matcher.html) and Brute Force matcher.
+
+![Alt text](../matching.png)
+![Alt text](../performances.png)
+
+### LK Tracker
+
+Next, I used a different class of feature tracker, the LK Tracker, to track keypoints in a video taken from the on-board cam of a drone.
+
+![Alt text](../tunnel.png)
+![Alt text](../race.png)
+
+
 # Installation
 
 1. Here are some extra dependencies that you might need for this code to work:
@@ -13,8 +30,6 @@ catkin clean -y
 catkin build lab_5
 ```
 
-> **Note** now you can build the workspace from anywhere inside the workspace, no need to go to the src folder. Please post on Piazza if you run into any build issues.
-
 Remember to source your workspace:
 ```
 source {VNAV_HOME}/vnav_ws/devel/setup.bash
@@ -26,7 +41,6 @@ source {VNAV_HOME}/vnav_ws/devel/setup.bash
 ```
 roslaunch lab_5 two_frames_tracking.launch
 ```
-> **Note** Not so fast, first you have to implement the functions inside the source code, follow the handout at this point.
 
 2. To run the feature tracking on a video sequence, we need to play the dataset rosbag (please see handout for details and link).
 For this we provide another launch file.
