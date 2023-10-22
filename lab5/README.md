@@ -4,15 +4,15 @@
 
 In this lab, I used opencv SIFT, SURF, and ORB features detectors and descriptors to track keypoints and compared their performances. For matching the keypoints, I have used a [FLANN-based matcher](https://docs.opencv.org/3.4/d5/d6f/tutorial_feature_flann_matcher.html) and Brute Force matcher.
 
-![Alt text](../matching.png)
-![Alt text](../performances.png)
+![Alt text](matching.png)
+![Alt text](performances.png)
 
 ### LK Tracker
 
 Next, I used a different class of feature tracker, the LK Tracker, to track keypoints in a video taken from the on-board cam of a drone.
 
-![Alt text](../tunnel.png)
-![Alt text](../race.png)
+![Alt text](tunnel.png)
+![Alt text](race.png)
 
 
 # Installation

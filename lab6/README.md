@@ -6,6 +6,8 @@ In this lab, I use [opengv](https://github.com/laurentkneip/opengv) to estimate 
 
 I implemented the simplest 8-point algorithm and the icp-like 3 points algorithm(which uses depth information), and compared the relative pose error to the nister 5 point algorithm in the opengv library.
 
+![Alt text](<Peek 2023-09-28 20-06.gif>)
+
 ![Alt text](algo.png)
 
 
