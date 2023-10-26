@@ -12,7 +12,7 @@ I have used a separate node to perform pose graph optimization in real time. (pg
 ### sparse point reconstruction
 using the bounding boxes of Darknet detection results with ORB tracker, I was able to obtain up to several hundred keypoints per frame, which will be plugging into the pose graph.
 
-../../catkin_ws/src/lab8
+![Alt text](teddy_keypoints.png)
 
 # Installation
 
