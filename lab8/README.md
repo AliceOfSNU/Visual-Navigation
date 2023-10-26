@@ -9,9 +9,10 @@ localize a teddy bear in the tum [rgbd teddy dataset](https://cvg.cit.tum.de/dat
 
 I have used a separate node to perform pose graph optimization in real time. (pgo) This uses the gtsam library from lab7. 
 
-** I will soon be extending this to triangulate ORB features to create a sparse point reconstruction of the teddy bear.**
+### sparse point reconstruction
+using the bounding boxes of Darknet detection results with ORB tracker, I was able to obtain up to several hundred keypoints per frame, which will be plugging into the pose graph.
 
-
+../../catkin_ws/src/lab8
 
 # Installation
 

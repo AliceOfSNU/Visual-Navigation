@@ -34,8 +34,6 @@ catkin_package(
  CATKIN_DEPENDS roscpp std_msgs opencv3_catkin gflags_catkin glog_catkin gtsam_catkin actionlib pgo 
 )
 
-
-
 include_directories(include ${Boost_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 
 add_library(
@@ -45,8 +43,16 @@ add_library(
 
 target_link_libraries(detectors ${catkin_LIBRARIES})
 
+add_library(
+  orb_feature_tracker
+  src/feature_tracker.cpp 
+  src/orb_feature_tracker.cpp
+)
+
+target_link_libraries(orb_feature_tracker ${catkin_LIBRARIES})
+
 add_executable(deliverable_2 src/deliverable_2.cpp)
-target_link_libraries(deliverable_2 detectors ${Boost_LIBRARIES} -ltbbmalloc ${catkin_LIBRARIES} -lffi -ltiff)
+target_link_libraries(deliverable_2 detectors orb_feature_tracker ${Boost_LIBRARIES}  ${catkin_LIBRARIES} -lffi -ltiff)
 
 add_executable(deliverable_4 src/deliverable_4.cpp)
 target_link_libraries(deliverable_4 ${catkin_LIBRARIES})

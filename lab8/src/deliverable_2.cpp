@@ -8,29 +8,36 @@
 #include <ros/publisher.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseArray.h>
-#include <visualization_msgs/Marker.h>
 
+// visualization
+#include <visualization_msgs/Marker.h>
 #include <std_msgs/ColorRGBA.h>
-#include "yolo_detector.h"
-#include <pgo/OptimizationRequest.h>
-#include <pgo/OptimizationResult.h>
 #include "helper_functions.hpp"
 #include "trajectory_color.h"
 #include <glog/logging.h>
 
+// yolo
+#include "yolo_detector.h"
+
+// pose graph
+#include <pgo/OptimizationRequest.h>
+#include <pgo/OptimizationResult.h>
+
+//cv
+#include <opencv2/features2d.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+// feature tracking
+#include "feature_tracker.h"
+#include "orb_feature_tracker.h"
+
+using namespace cv::xfeatures2d;
+using kpt_vector_t = std::vector<cv::KeyPoint>;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //  DELIVERABLE 2 | Object Localization
 // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-//global storage(move to heap if large)
-struct observation{
-  size_t frame_id;
-  geometry_msgs::Pose cam_pose;
-  // (cam_id, landmark_id, centroid_estimate)
-  vector<size_t> cam_ids;
-  vector<size_t> landmarks_ids;
-  vector<cv::Point2f> landmarks_pixels;
-};
 
 pgo::OptimizationRequest req;
 bool pgo_available = true;
@@ -46,6 +53,7 @@ vector<geometry_msgs::Point> landmarks;
 
 // global publishers
 ros::Publisher optimal_traj_lines_pub, gt_pose_array_pub, optimal_landmarks_pub, optimal_pose_array_pub;
+ros::Publisher image_pub;
 ros::Publisher pgo_pub;
 
 // functions
@@ -107,6 +115,7 @@ int main(int argc, char** argv) {
   gt_pose_array_pub = local_nh.advertise<geometry_msgs::PoseArray>("/gt_trajectory", 10, true);
   optimal_landmarks_pub =local_nh.advertise<visualization_msgs::Marker>("/landmarks_optimal", 10, true);
   optimal_pose_array_pub = local_nh.advertise<geometry_msgs::PoseArray>("/poses_optimal", 10, true);                             
+  image_pub = local_nh.advertise<sensor_msgs::Image>("/detection_img", 10, true);
   
   tf::StampedTransform transform;
   tf::TransformListener tf_listener;
@@ -117,10 +126,16 @@ int main(int argc, char** argv) {
   detector.reset(new YOLODetector(local_nh));
   landmarks.resize(1); //we are tracking one landmark.
 
+  // create feature tracker
+  std::shared_ptr<FeatureTracker> tracker(new OrbFeatureTracker());
+
+
+  //initialize pgo
   ros::Subscriber pgo_sub = 
     local_nh.subscribe("/backend/optim_result", 10, optimizer_callback);
 
   pgo_pub = local_nh.advertise<pgo::OptimizationRequest>("/backend/optim_request", 1);
+  
   
   size_t frameId(0); 
 
@@ -134,26 +149,69 @@ int main(int argc, char** argv) {
     req.cam_poses.push_back(img_and_pose.second);
     req.cam_ids.push_back(frameId);
 
+    // detect keypoints
+    
+    cv::Mat img = img_and_pose.first.clone();
+    static cv::Mat img_prev = img;
+    
+
     // detect bounding boxes
     vector<darknet_ros_msgs::BoundingBox> bboxes;
     bool is_detected = detector->detect(msg, OUT bboxes);
-    
+
+    //if(!is_detected) return;
     // iterate over bboxes and push teddy bears
+    
+    cv::Rect teddy_bbox;
+    static cv::Rect teddy_bbox_old;
+
+    bool teddy_found = false;
+    geometry_msgs::Point pt;    
     for (darknet_ros_msgs::BoundingBox const& bbox: bboxes){
       if(bbox.Class == "teddy bear"){
-        req.association_cam_ids.push_back(frameId);
-        req.landmarks_ids.push_back(0);
-
         // extract centroid
         cv::Point2f centroid = findCentroid(bbox);
-        geometry_msgs::Point pt;
         pt.x = centroid.x, pt.y = centroid.y, pt.z = 0.0f;
-        req.landmarks_pixels.push_back(pt);
-
-        cout << "image h=" << msg->height << ", w=" << msg->width << ": x=" << pt.x << ", y = " << pt.y << endl; 
+        teddy_found = true;
+        //teddy_bbox = cv::Rect(floor(centroid.x), floor(centroid.y), bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin);
+        teddy_bbox = cv::Rect(cv::Point2i(bbox.xmin, bbox.ymin), cv::Point2i(bbox.xmax, bbox.ymax));
+        break;
       }
     }
 
+
+    if(!teddy_found || teddy_bbox_old.empty() || teddy_bbox.empty()) {
+      // cache anyways.
+      img_prev = img;
+      teddy_bbox_old = teddy_bbox;
+      return; //no increment of frame id
+    }
+
+    cv::Mat match_img; //visualization
+  #if 1 // a keypoint is tracked for just 1~2 frames.
+    std::pair<kpt_vector_t, kpt_vector_t> matches;
+    tracker->trackFeatures(img_prev, img, &matches, OUT match_img, teddy_bbox_old, teddy_bbox);
+    std::cout << "[dev2] total " << matches.first.size() << " observed" << std::endl;
+  #else //a keypoint is tracked for many frames(performs track management)
+    std::vector<observation> observations;
+    tracker->trackFeaturesContinuous(img_prev, img, OUT observations, match_img, teddy_bbox_old, teddy_bbox);
+    std::cout << "[dev2] total" << observations.size() << " observed" << std::endl;
+  #endif
+
+    // cache
+    img_prev = img;
+    teddy_bbox_old = teddy_bbox;
+
+    //landmarks step1. centroid
+    req.association_cam_ids.push_back(frameId);
+    req.landmarks_ids.push_back(0);
+    req.landmarks_pixels.push_back(pt);
+
+    //landmarks step2. keypoints
+
+    //DEBUG IMAGE
+    sensor_msgs::ImageConstPtr imgMsg =  matToImageMsg(msg->header, match_img);
+    image_pub.publish(imgMsg);
     
     cout <<"total" << req.landmarks_ids.size() << "landmarks" << endl;
     if(req.landmarks_ids.size() > 0) has_data = true;
@@ -163,6 +221,7 @@ int main(int argc, char** argv) {
     }
 
     frameId++;
+
   };
   
   image_transport::Subscriber im_sub = img_tr.subscribe("/camera/rgb/image_color", 10, callback);
